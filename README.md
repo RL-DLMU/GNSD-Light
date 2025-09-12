@@ -12,7 +12,7 @@
 ## 使用方式：
 ## 训练模型
 - 直接运行 `run.py` 即可
-- `python GNSD-Light/main.py`
+- `python GNSD-Light/run.py`
 
 本项目为论文 [Sequential Decision MARL for Adaptive Traffic Signal Control With Different Intersections Priorities](https://ieeexplore.ieee.org/document/11021536) 的官方开源实现，如有引用请使用以下 BibTeX：
 ```bibtex
