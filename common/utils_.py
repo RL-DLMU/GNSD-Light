@@ -39,16 +39,28 @@ def adjacency_index2matrix(adjacency_index, num, out_dim, flag_self, flag_even):
         for id, node_list in enumerate(adjacency_index):
             if -1 in node_list:
                 adjacency_index.remove(node_list)
+    # adjacency_index = np.array(pd.DataFrame(adjacency_index))
     # 生成空的输出矩阵
     padd = np.zeros(out_dim, dtype=np.float32)
     out_matrix = []
     for i, classes in enumerate(adjacency_index):
+        # -1 的 全为0
         one_hot = to_categorical(np.array(classes), num_classes=out_dim)
+        # -1 的最后多的那项
+        # one_hot = to_categorical(np.array(classes), num_classes=out_dim)
+        # if flag_even:
         while one_hot.shape[0] < num:
             one_hot = np.vstack([one_hot, padd])
-
+        # if i == 0:
+        #     out_matrix = one_hot
+        # else:
+        #     out_matrix = np.stack([out_matrix, one_hot], axis=0)
+        # out_matrix.append(one_hot)
         out_matrix = one_hot if i == 0 else np.concatenate([out_matrix, one_hot], axis=0)
+        # n += len(classes)
     out_matrix = out_matrix.reshape(-1, num, out_dim)
+    # adjacency_index_new = np.sort(adjacency_index, axis=-1)
+    # l = to_categorical(adjacency_index_new, num_classes=num_agents)
     return out_matrix
 def adjacency_concat2matrix(adjacency_index, num, out_dim):
     '''前n个是前驱，后n个是自己，输出前驱（前16）及自己（后16）的位置下标'''
@@ -68,6 +80,7 @@ def adjacency_concat2matrix(adjacency_index, num, out_dim):
             node_list.remove(-1)
         node_list.append(lead_index)
         lead_index += 1
+    # adjacency_index = np.array(pd.DataFrame(adjacency_index))
     # 生成空的输出矩阵
     padd = np.zeros(out_dim, dtype=np.float32)
     # n = 0
@@ -79,7 +92,7 @@ def adjacency_concat2matrix(adjacency_index, num, out_dim):
         out_matrix = one_hot if i == 0 else np.concatenate([out_matrix, one_hot], axis=0)
     out_matrix = out_matrix.reshape(-1, num, out_dim)
     return out_matrix
-def build_index_intersection_map(roadnet_file):
+def build_index_intersection_map(roadnet_file, flow_path):
     """
     generate the map between identity ---> index ,index --->identity
     generate the map between int ---> roads,  roads ----> int
@@ -113,6 +126,7 @@ def build_index_intersection_map(roadnet_file):
     cur_num = 0 #同构节点数量
     num = 0 # 节点总数
     # 点集合
+    # build the map between identity and index of node
     for node_dict in roadnet_dict["intersections"]:
         if node_dict[virt]:
             for node in node_dict["roads"]:
@@ -130,13 +144,26 @@ def build_index_intersection_map(roadnet_file):
             Heterogeneous_id.append(cur_id)
             # Heterogeneous_idx.append(all_node_id2idx[cur_id])
         # 选领导者
+        # if cur_num == 5 or cur_num == 17 or cur_num == 30 or cur_num == 31 or cur_num == 32 or cur_num == 33 or cur_num == 34 or cur_num == 35 or cur_num == 36 or cur_num == 37 or cur_num == 38 or cur_num == 39 or cur_num == 41 or cur_num == 43 or cur_num == 45 or cur_num == 47:  #newyork16*3
+        # if cur_num == 1 or cur_num == 3 or cur_num == 4 or cur_num == 7 or cur_num == 10 or cur_num == 12:  # jinan
+        # if cur_num == 3 or cur_num == 8 or cur_num == 11:  # jinan
+        # if cur_num == 1 or cur_num == 4 or cur_num == 16: # hangzhou
+        # if cur_num == 25 or cur_num == 28: # syn
         if cur_num == 6: # syn
+        # if cur_num == 7 or cur_num == 10 or cur_num == 11: # syn
+        # if cur_num == 1 or cur_num == 2 or cur_num == 3 or cur_num == 4 or cur_num == 13 or cur_num == 14 or cur_num == 15 or cur_num == 16:  # hangzhou
             node_id2lead[cur_id] = 1
             node_leadid.append(1)
             lead_id.append(cur_num - 1)
         else:
             node_id2lead[cur_id] = 0
             node_leadid.append(0)
+        # node_id2lead[cur_id] = random.randint(0, 1)
+        # if node_id2lead[cur_id] == 1:
+        #     lead_id.append(cur_num-1)
+    # map between identity and index built done
+
+    # sanity check of node number equals intersection numbers
     if cur_num + len(Heterogeneous_id) != len(valid_intersection_id):
         raise ValueError("environment and graph setting mapping error, node 1 to 1 mapping error")
 
@@ -159,10 +186,44 @@ def build_index_intersection_map(roadnet_file):
 
 
 
-
+    # for edge_arr in sparse_adj:
+    #     input_node_idx = edge_arr[0]
+    #     output_node_idx = edge_arr[1]
+    #     if output_node_idx in Heterogeneous_idx:
+    #         while() # 找到异构节点连接的同构节点
+    #         sparse_adj.remove(edge_arr)
+    #
+    #
+    #     input_node_id = edge_dict['startIntersection']
+    #     output_node_id = edge_dict['endIntersection']
+    #     if input_node_id not in Heterogeneous_id and output_node_id not in Heterogeneous_id: # 同构
+    #         edge_idx2id[cur_num] = edge_id
+    #         edge_id2idx[edge_id] = cur_num
+    #         cur_num += 1
+    #         # input_node_id = edge_dict['startIntersection']
+    #         # output_node_id = edge_dict['endIntersection']
+    #         input_node_idx = node_id2idx[input_node_id]
+    #         output_node_idx = node_id2idx[output_node_id]
+    #         sparse_adj.append([input_node_idx, output_node_idx])
+    #     elif output_node_id in Heterogeneous_nodes: # 需要处理的异构的边（不是所有异构的边都处理）
+    #         input_node_idx = node_id2idx[input_node_id]
+    #         for road in roadnet_dict["roads"]:
+    #             if road["startIntersection"] == output_node_id:
+    #                 if road["endIntersection"] not in Heterogeneous_nodes:
+    #                     output_node_idx = node_id2idx[road["endIntersection"]]
+    #                     sparse_adj.append([input_node_idx, output_node_idx])
+    #                 else:
+    #                     a = 1
+            # node_id = node_idx2id[output_node_id]
+            # for road_link in roadnet_dict["intersection"][node_id]["roadLinks"]:
+            #     if road_link["startRoad"] == edge_dict:
+            #         endroad = road_link["endRoad"] # 找到异构节点连接的其他路
+            #         output_node_id = 1
+    # build adjacent matrix for node (i.e the adjacent node of the node, and the
+    # adjacent edge of the node)
     for node_dict in roadnet_dict["intersections"]:
         if node_dict[virt]:
-            continue        
+            continue
         node_id = node_dict["id"]
         road_links = node_dict['roads']
         input_nodes = []  # should be node_degree
@@ -182,32 +243,45 @@ def build_index_intersection_map(roadnet_file):
         if len(input_nodes) != len(input_edges):
             raise ValueError(f"{node_id} : number of input node and edge not equals")
         node_degrees.append(len(input_nodes))
+        # node_list：每个节点的每条边的源头是哪个节点，即第一项（0节点）内容是1（这条边来源于1节点）
+        # edge_list：每个节点拥有的进车道的边的序号
         edge_list.append(input_edges)
         node_list.append(input_nodes)
     [l.sort() for l in node_list]
+    # node_degrees是每个node的入度；sparse_adj存在了哪些边
     node_degrees = np.array(node_degrees)  # the num of adjacent nodes of node
     sparse_adj = np.array(sparse_adj)  # the valid num of adjacent edges of node
     nei_matrix = copy.deepcopy(node_list)
     Adj_matrix_onehot = adjacency_index2matrix(nei_matrix, 5, len(nei_matrix), True, False)
     Adj_matrix = np.sum(Adj_matrix_onehot, -2)
     nei_pos_matrix = generate_pos(nei_matrix, Adj_matrix)
+    # pos_matrix = np.array(generate_pos(nei_matrix, Adj_matrix))
+    # nei_pos_matrix = []
+    # # pos_matrix = pos_matrix.repeat(len(pos_matrix)).reshape(len(pos_matrix),len(pos_matrix),len(pos_matrix))
+    # for matrix in pos_matrix:
+    #     nei_pos_matrix.append(np.diag(matrix)) #现在是矩阵在对角线上，就可以乘了
+    # matrix = copy.deepcopy(pos_list)
+    # nei_pos_matrix = adjacency_index2matrix(matrix, len(matrix[1]), 5, False, False)
+    # 广度优先遍历
     node_BFS = []  # 存放最终的结果
     nodelayer_BFS = []
     node_precursor = [[-1] for i in range(len(node_list))]
     flag = [0]*len(node_idx2id)
     flag_p = [10000] * len(node_idx2id)
-    queue = lead_id
+    # queue = np.array(lead_id)  # 存储当前层的节点，这个相当于队列，先进先出，后进后出
+    queue = lead_id  # 存储当前层的节点，这个相当于队列，先进先出，后进后出
     level = 0
     # 标记遍历过的节点
     for id in queue:
         flag[id] = 1
         flag_p[id] = level
-    while queue:
-        n = len(queue)
-        temp = []
-        for i in range(n):
-            a = queue.pop(0)
+    while queue:  # 当当前层没有节点时，退出循环
+        n = len(queue)  # 获取当前队列的长度，这个长度相当于 当前这一层的节点个数,以区分来自那一层
+        temp = []  # 暂存,在while的循环中，别写在下面的for循环中！
+        for i in range(n):  # 遍历当前层的节点数
+            a = queue.pop(0)  # 推出去,将queue中存的上一层的节点全部pop出去
             temp.append(a)
+            # 将下一层的节点（左右）添加到queue中，以进行下一次迭代（循环）
             a_n = node_list[a]
             flag_p[a] = level
             for b in a_n:
@@ -226,7 +300,13 @@ def build_index_intersection_map(roadnet_file):
             flag_p[id] = level
         nodelayer_BFS.append(temp)
 
+    # 定义排序规则的比较函数
+
+    # [l.sort() for l in node_precursor]
     [l.sort() for l in nodelayer_BFS]
+    # teammates = generate_teammates(nodelayer_BFS)
+    # matrix = copy.deepcopy(teammates)
+    # teammates_matrix = adjacency_index2matrix(matrix, len(matrix), len(matrix), False, False)
     node_precursor_sort = []
     for id, array in enumerate(node_precursor):
         def sort_key(tuple_item):
@@ -239,23 +319,30 @@ def build_index_intersection_map(roadnet_file):
                 return 2
             else:
                 return 3
+        # a = [1,4,6,9]
+        # a=sorted(a, key=sort_key)
         node_precursor_sort.append(sorted(array, key=sort_key))
     pre_matrix = copy.deepcopy(node_precursor_sort)
     precursor_matrix_onehot = adjacency_index2matrix(pre_matrix, 4, len(pre_matrix)+1, False, False)
     precursor_matrix = np.sum(precursor_matrix_onehot, -2)
+    # pos_list = generate_pos(node_precursor_sort, precursor_matrix, nodelayer_BFS[0])
+    # matrix = copy.deepcopy(pos_list)
+    # pre_pos_matrix = adjacency_index2matrix(matrix, len(matrix[1]), 5, False, False)
 
     his_pos_matrix = generate_pos_his_vari(node_precursor_sort, precursor_matrix, nodelayer_BFS[0])
+    # matrix = copy.deepcopy(his_pos_list)
+    # his_pos_matrix = adjacency_index2matrix(matrix, len(matrix[1]), 4, False, False)
     result = {'node_idx2id': node_idx2id, 'node_id2idx': node_id2idx, 'node_id2lead': node_id2lead,
               'edge_idx2id': edge_idx2id, 'edge_id2idx': edge_id2idx, 'node_BFS': node_BFS, 'nodelayer_BFS': nodelayer_BFS, 'his_pos_matrix': his_pos_matrix,
               'node_degrees': node_degrees, 'sparse_adj': sparse_adj, 'node_precursor': node_precursor_sort, 'precursor_matrix': precursor_matrix, 'nei_pos_matrix': nei_pos_matrix,
               'node_list': node_list, 'Adj_matrix': Adj_matrix, 'edge_list': edge_list, 'node_leadid': node_leadid}
     return result
-
-
 def generate_pos(matrix, precursor_matrix, leader=None):
     pos_list = (np.zeros_like(precursor_matrix)).tolist()
     for i, nodes in enumerate(matrix):
         for node in nodes:
+            # if node - i == len(pos_list):  # 自己
+            #     pos_list[i][node] = 1
             if node == -1:
                 break
             elif node == i-1: # 左
@@ -268,12 +355,54 @@ def generate_pos(matrix, precursor_matrix, leader=None):
                 pos_list[i][node] = 11
             else: # 自己
                 pos_list[i][node] = 13
+    # if leader:
+    #     pos_list = [value for i, value in enumerate(pos_list) if i not in leader]
     return pos_list
 
-
-
-def generate_pos_his_vari(matrix, precursor_matrix, leader=None):
+def generate_pos_his1(matrix, precursor_matrix, leader=None):
     pos_list = (np.zeros_like(precursor_matrix)).tolist()
+    # padd = np.zeros(len(pos_list[0]), dtype=np.float32)
+    # pos_list.append(padd)
+    pos_list = np.tile(pos_list, (1, 5))
+    n_agent = len(matrix)
+    for i, nodes in enumerate(matrix):
+        for node in nodes:
+            # if node - i == len(pos_list):  # 自己
+            #     pos_list[i][node] = 1
+            if node == -1:
+                break
+            elif node == i-1: # 左
+                pos_list[i][node] = 3
+                pos_list[i][(n_agent+1)*1 + node] = 3
+                pos_list[i][(n_agent+1)*2 + node] = 3
+                pos_list[i][(n_agent+1)*3 + node] = 3
+                pos_list[i][(n_agent+1)*4 + node] = 3
+            elif node == i+1: # 右
+                pos_list[i][node] = 5
+                pos_list[i][(n_agent + 1) * 1 + node] = 5
+                pos_list[i][(n_agent + 1) * 2 + node] = 5
+                pos_list[i][(n_agent + 1) * 3 + node] = 5
+                pos_list[i][(n_agent + 1) * 4 + node] = 5
+            elif node < i: #上
+                pos_list[i][node] = 7
+                pos_list[i][(n_agent + 1) * 1 + node] = 7
+                pos_list[i][(n_agent + 1) * 2 + node] = 7
+                pos_list[i][(n_agent + 1) * 3 + node] = 7
+                pos_list[i][(n_agent + 1) * 4 + node] = 7
+            elif node > i: # 下
+                pos_list[i][node] = 11
+                pos_list[i][(n_agent + 1) * 1 + node] = 11
+                pos_list[i][(n_agent + 1) * 2 + node] = 11
+                pos_list[i][(n_agent + 1) * 3 + node] = 11
+                pos_list[i][(n_agent + 1) * 4 + node] = 11
+            else: # 自己
+                pos_list[i][node] = 5
+    return pos_list
+
+def generate_pos_his_vari(matrix, precursor_matrix, leader=None): # -MF，将3 5 7 11 都改成1
+    pos_list = (np.zeros_like(precursor_matrix)).tolist()
+    # padd = np.zeros(len(pos_list[0]), dtype=np.float32)
+    # pos_list.append(padd)
     his_length = Registry.mapping['trainer_mapping']['setting'].param['his_length']
     pos_list = np.tile(pos_list, (1, his_length))
     n_agent = len(matrix)
@@ -302,6 +431,8 @@ def generate_pos_his(matrix, precursor_matrix, leader=None):
     n_agent = len(matrix)
     for i, nodes in enumerate(matrix):
         for node in nodes:
+            # if node - i == len(pos_list):  # 自己
+            #     pos_list[i][node] = 1
             if node == -1:
                 break
             elif node == i-1: # 左
@@ -326,7 +457,23 @@ def generate_pos_his(matrix, precursor_matrix, leader=None):
                 pos_list[i][(n_agent + 1) * 3 + node] = 15
             else: # 自己
                 pos_list[i][node] = 5
+    # if leader:
+    #     pos_list = [value for i, value in enumerate(pos_list) if i not in leader]
     return pos_list
+def generate_teammates(input_array):
+    teammates = [[0]*1]*16
+    for i, array in enumerate(teammates):
+        def find_index(arr, target):
+            for x, sublist in enumerate(arr):
+                if target in sublist:
+                    return x
+            return -1
+        array = input_array[find_index(input_array, i)]
+        teammates[i] = array
+    # for i, array in enumerate(teammates):
+    #     teammates[i].remove(i)
+
+    return teammates
 
 def analyse_vehicle_nums(file_path):
     replay_buffer = pickle.load(open(file_path, "rb"))

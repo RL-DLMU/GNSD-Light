@@ -1,6 +1,6 @@
 import numpy as np
 from . import BaseGenerator
-from world import world_cityflow, world_sumo #, world_openengine
+from world import world_cityflow#, world_sumo #, world_openengine
 
 
 class LaneVehicleGenerator(BaseGenerator):
@@ -90,15 +90,15 @@ class LaneVehicleGenerator(BaseGenerator):
 
         # ---------------------------------------------------------------------------------------------------------------
         # TODO: register it in Registry
-        if isinstance(world, world_sumo.World):
-            for r in roads:
-                if not self.world.RIGHT:
-                    tmp = sorted(I.road_lane_mapping[r], key=lambda ob: int(ob[-1]), reverse=True)
-                else:
-                    tmp = sorted(I.road_lane_mapping[r], key=lambda ob: int(ob[-1]))
-                self.lanes.append(tmp)
+        # if isinstance(world, world_sumo.World):
+        #     for r in roads:
+        #         if not self.world.RIGHT:
+        #             tmp = sorted(I.road_lane_mapping[r], key=lambda ob: int(ob[-1]), reverse=True)
+        #         else:
+        #             tmp = sorted(I.road_lane_mapping[r], key=lambda ob: int(ob[-1]))
+        #         self.lanes.append(tmp)
                 # TODO: rank lanes by lane ranking [0,1,2], assume we only have one digit for ranking
-        elif isinstance(world, world_cityflow.World):
+        if isinstance(world, world_cityflow.World):
             # 通过将roads中的每条路（四个方向上的路） 加上012 就成为了每条lane了（每个方向3条道）
             # 所以需要先知道知道交叉口的路，存在roads中，向上寻找roads是如何建立的
             for road in roads:

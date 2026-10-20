@@ -29,7 +29,7 @@ class Graph_World_Interface(Interface):
     def __init__(self, path):
         super(Graph_World_Interface, self).__init__()
         # TODO: support other roadnet file formation other than cityflow
-        Graph_World_Interface.graph = build_index_intersection_map(path)
+        Graph_World_Interface.graph = build_index_intersection_map(path, flow_path=None)
 
 
 @Registry.register_world('setting')
