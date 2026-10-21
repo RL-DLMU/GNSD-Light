@@ -6,7 +6,7 @@ import agent
 import dataset
 from common.registry import Registry
 from common import interface
-from common.utils import *
+from common.utils_ import *
 from utils.logger import *
 import time
 import torch
@@ -25,9 +25,9 @@ parser.add_argument('--interface', type=str, default="libsumo", choices=['libsum
 parser.add_argument('--delay_type', type=str, default="apx", choices=['apx','real'], help="method of calculating delay") # apx(approximate) or real
 
 parser.add_argument('-t', '--task', type=str, default="tsc", help="task type to run")
-parser.add_argument('-a', '--agent', type=str, default="GNSD-Light", help="agent type of agents in RL environment")
+parser.add_argument('-a', '--agent', type=str, default="GNSD_Light", help="agent type of agents in RL environment")
 parser.add_argument('-w', '--world', type=str, default="cityflow", choices=['cityflow','sumo'], help="simulator type")
-parser.add_argument('-n', '--network', type=str, default="cityflow3x4", help="network name")
+parser.add_argument('-n', '--network', type=str, default="cityflow4x4_syn", help="network name")
 parser.add_argument('-d', '--dataset', type=str, default='onfly', help='type of dataset in training process')
 
 args = parser.parse_args()
@@ -85,16 +85,7 @@ class Runner:
 
 
 if __name__ == '__main__':
-    # a = torch.tensor([[1, 1], [2, 2], [3, 3]])
-    # # 定义向量 [5, 2, 3]
-    # b = torch.tensor([5, 2, 3])
-    # # 使用点乘运算
-    # result = a * b[:, None]
-
     test = Runner(args)
     test.run()
 
-    # args_p =args
-    # test = Runner(args_p)
-    # test.run()
 

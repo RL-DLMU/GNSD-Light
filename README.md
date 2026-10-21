@@ -10,9 +10,12 @@
   - Matplotlib
   - Math
 ## 使用方式：
-## 训练模型
-- 直接运行 `run.py` 即可
-- `python GNSD-Light/run.py`
+- 运行模型: 要运行模型，直接运行: 
+  - `python GNSD-Light/run.py`
+- 训练模型: 要训练模型，首先在GNSD-Light.yml配置文件中将train_model设置为True，然后运行: 
+  - `python GNSD-Light/train.py`
+
+
 
 本项目为论文 [Sequential Decision MARL for Adaptive Traffic Signal Control With Different Intersections Priorities](https://ieeexplore.ieee.org/document/11021536) 的官方开源实现，如有引用请使用以下 BibTeX：
 ```bibtex

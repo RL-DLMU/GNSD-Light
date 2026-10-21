@@ -118,11 +118,6 @@ class TSCTrainer(BaseTrainer):
         # agent = Registry.mapping['model_mapping'][Registry.mapping['command_mapping']['setting'].param['agent']](self.world, node_BFS[0])
         agent = Registry.mapping['model_mapping'][Registry.mapping['command_mapping']['setting'].param['agent']](
             self.world, 0)
-        '''if 同构路口：
-        建立某个智能体
-            else:
-            建立某个智能体
-            '''
         print(agent)
         num_agent = int(len(self.world.intersections) / agent.sub_agents)
         self.agents.append(agent)  # initialized N agents for traffic light control
@@ -318,25 +313,10 @@ class TSCTrainer(BaseTrainer):
         plt.subplot(4, 1, 4)
         plt.plot(loss_list, lw=1, ls='--', c='g', label='loss')
         plt.ylabel("loss")
-        # plt.subplot(3, 1, 1)
-        # plt.plot(reward_l_list, lw=1, ls='-', c='b', label='reward_l')
-        # plt.ylabel("reward_leader")
-        # plt.title("② fixed 1*3")
-        # 绘图命令
-        # # lw：指定线条宽度，alpha：指定线条透明度，值越小越透明
-        # plt.plot(throughput, lw=1, ls='-', c='b', alpha=0.1)
         plt.xlabel("Episode")
-        # plt.ylabel("throughput")
         plt.legend(loc='upper left')
-        # plt.plot()
-        # show出图形
         plt.show()
-        # f_all['bfs-hdgn'] = reward_list
-        # f_all.to_csv('rewards_all(2).csv', index=None)
-        # f_leader['bfs-hdgn'] = reward_l_list
-        # f_leader.to_csv('rewards_leader(2).csv', index=None)
-        # f_all.close()
-        # f_leader.close()
+
 
     def train_test(self, e, start_time):
         '''
@@ -425,6 +405,7 @@ class TSCTrainer(BaseTrainer):
         :param drop_load: decide whether to load pretrained model's parameters
         :return self.metric: including queue length, throughput, delay and travel time
         '''
+        start_time = time.time()
         if Registry.mapping['command_mapping']['setting'].param['world'] == 'cityflow':
             if self.save_replay:
                 self.env.eng.set_save_replay(True)
@@ -433,99 +414,62 @@ class TSCTrainer(BaseTrainer):
                 self.env.eng.set_save_replay(False)
         if not drop_load:
             [ag.load_model(self.episodes) for ag in self.agents]
-        for e in range(1):
+        self.ag = self.agents[0]
+        obs = self.env.reset()
+        self.metric.clear()
+        for a in self.agents:
+            a.reset()
+        i = 0
+        his_a = deque(maxlen=self.his_length)
+        his_action = deque(maxlen=self.his_length)
+        his_adj = deque(maxlen=self.his_length)
+        his_adj_ = deque(maxlen=self.his_length)
+        while i < self.test_steps:
+            if i % self.action_interval == 0:
+                phases = np.stack([ag.get_phase() for ag in self.agents])
+                while len(his_action) < self.his_length:
+                    his_action.appendleft(np.array([8] * self.ag.sub_agents))
+                    his_adj_.appendleft(0)
+                actions = []
+                for idx, ag in enumerate(self.agents):
+                    actions.append(ag.get_action(obs[idx], his_action, his_adj_, test=True))
 
-            self.metric.clear()
+                actions = np.stack(actions)  # [agent, intersections]
+                rewards_p_list = []
+                rewards_list = []
+                his_a.append(actions.flatten())
+                his_adj.append(1)
+                his_action = his_a.copy()
+                his_adj_ = his_adj.copy()
+                while len(his_action) < self.his_length:
+                    his_action.appendleft(np.array([8] * self.ag.sub_agents))
+                    his_adj_.appendleft(0)
+                for _ in range(self.action_interval):
+                    obs, rewards, rewards_p, dones, _ = self.env.step(
+                        actions.flatten())  # make sure action is [intersection]
+                    i += 1
+                    rewards_list.append(np.stack(rewards))
+                    rewards_p_list.append(np.stack(rewards_p))
+                rewards = np.mean(rewards_list, axis=0)  # [agent, intersection]
+                rewards_p = np.mean(rewards_p_list, axis=0)
+                self.metric.update(rewards)
 
-            attention_mat_list = []
-            obs = self.env.reset()
-            for a in self.agents:
-                a.reset()
-            self.ag = self.agents[0]
-            # actions = [0] * len(self.agents)
-            # actions = []
-            # for i in enumerate(self.agents):
-            #     actions.append([0])
-            his_a = deque(maxlen=5)
-            his_action = deque(maxlen=5)
-            his_adj = deque(maxlen=5)
-            his_adj_ = deque(maxlen=5)
-            for i in range(self.test_steps):
-                if i % self.action_interval == 0:
-                    phases = np.stack([ag.get_phase() for ag in self.agents])
-                    # for idx, ag in enumerate(self.agents):
-                    #     action = ag.get_action(obs[idx], phases[idx], test=True)
-                    #     # actions.append(action)
-                    #     if len(actions) == len(self.agents):
-                    #         actions[idx] = action
-                    #         actions = np.stack(actions)  # [agent, intersections]
-                    #         obs, rewards, dones, _ = self.env.step(actions.flatten())
-                    #     else:
-                    #         actions.append(action)
-                    # actions = np.stack(actions)
-                    while len(his_action) < 5:
-                        his_action.appendleft(np.array([8] * self.ag.sub_agents))
-                        his_adj_.appendleft(0)
 
-                    actions = []
-                    for idx, ag in enumerate(self.agents):
-                        if i < 1200:
-                            actions.append([i % 8] * 16)
-                            ag.flag = -1
-                            ag.flag1 = 0
-                        else:
-                            actions.append(ag.get_action(obs[idx], his_action, his_adj_, test=True))
-                            ag.flag = max(0, ag.flag)
-                        # actions.append(ag.get_action(obs[idx], his_action, his_adj_, test=True))
-                    actions = np.stack(actions)  # [agent, intersections]
-                    rewards_p_list = []
-                    rewards_list = []
-                    his_a.append(actions.flatten())
-                    his_adj.append(1)
-                    his_action = his_a.copy()
-                    his_adj_ = his_adj.copy()
-                    while len(his_action) < 5:
-                        his_action.appendleft(np.array([8] * self.ag.sub_agents))
-                        his_adj_.appendleft(0)
-                    for _ in range(self.action_interval):
-                        obs, rewards, rewards_p, dones, _ = self.env.step(
-                            actions.flatten())  # make sure action is [intersection]
-                        i += 1
-                        rewards_list.append(np.stack(rewards))
-                        rewards_p_list.append(np.stack(rewards_p))
-                    rewards = np.mean(rewards_list, axis=0)  # [agent, intersection]
-                    rewards_p = np.mean(rewards_p_list, axis=0)
-                    self.metric.update(rewards, rewards_p)
+            if all(dones):
+                break
+        mega_l = Registry.mapping['model_mapping']['setting'].param['mega_l']
+        mega_f = Registry.mapping['model_mapping']['setting'].param['mega_f']
+        her = Registry.mapping['model_mapping']['setting'].param['her']
+        self.logger.info(
+            "Test step:{}/{}, travel time :{}, rewards_p:{}, rewards:{}, rewards_l:{}, queue:{}, delay:{}, throughput:{}".format( \
+                1, self.episodes, self.metric.real_average_travel_time(), self.metric.rewards_p(),
+                self.metric.rewards(), self.metric.rewards(), \
+                self.metric.queue(), self.metric.delay(), int(self.metric.throughput())))
+        self.writeLog("TEST", 1, self.metric.real_average_travel_time(), \
+                      mega_l, mega_f, her, self.metric.rewards(), self.metric.rewards(), self.metric.queue(),
+                      self.metric.queue_l(), self.metric.delay(), self.metric.throughput(), time.time() - start_time)
 
-                    # actions = []
-                    # for idx, ag in enumerate(self.agents):
-                    #     actions.append(ag.get_action(obs[idx], phases[idx], test=True))
-                    # actions = np.stack(actions)
-                    # rewards_p_list = []
-                    # for j in range(self.action_interval):
-                    #     obs, rewards, rewards_p, dones, _ = self.env.step(actions)
-                    #     i += 1
-                    #     rewards_p_list.append(np.stack(rewards_p))
-                    # rewards_p = np.mean(rewards_p_list, axis=0)  # [agent, intersection]
-                    # self.metric.update(rewards_p)
-                    if all(dones):
-                        break
-                    # rewards_l, rewards_f = self.metric.rewards_each()
-                    mega_l = Registry.mapping['model_mapping']['setting'].param['mega_l']
-                    mega_f = Registry.mapping['model_mapping']['setting'].param['mega_f']
-                    her = Registry.mapping['model_mapping']['setting'].param['her']
-                    # self.logger.info("Final Travel Time is %.4f, mean rewards: %.4f, queue: %.4f, delay: %.4f, throughput: %d" % (self.metric.real_average_travel_time(), \
-                    #     self.metric.rewards(), self.metric.queue(), self.metric.delay(), self.metric.throughput()))
-
-                    self.logger.info(
-                        "Test step:{}/{}, travel time :{}, rewards_p:{}, rewards:{}, rewards_l:{}, queue:{}, delay:{}, throughput:{}".format( \
-                            int(i / 10), self.episodes, self.metric.real_average_travel_time(), self.metric.rewards_p(),
-                            self.metric.rewards(), self.metric.rewards(), \
-                            self.metric.queue(), self.metric.delay(), int(self.metric.throughput())))
-
-                    # self.writeLog("TEST", int(i/10), self.metric.real_average_travel_time(), \
-                    #               mega_l, mega_f, her, self.metric.rewards(), self.metric.rewards(), self.metric.queue(), self.metric.queue_l(), self.metric.delay(), self.metric.throughput())
-        return self.metric
+        return self.metric.real_average_travel_time()
 
     def writeLog(self, mode, step, travel_time, mega_l, mega_f, her, cur_rwd, cur_rwd_l, cur_queue, cur_queue_l,
                  cur_delay, cur_throughput, time, none_='''
